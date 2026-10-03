@@ -210,7 +210,9 @@ export default function AvatarViewer3D({
   const onContextCreate = async (gl: any) => {
     const renderer = new Renderer({ gl });
     renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-    renderer.setClearColor(0x0a0a0a, 0);
+    // Opaque clear color — transparent (alpha 0) GL surfaces render black on
+    // several Android GL drivers, so keep it opaque for reliable rendering.
+    renderer.setClearColor(0x0a0a0a, 1);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
