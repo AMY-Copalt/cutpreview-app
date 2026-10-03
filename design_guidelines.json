@@ -1,0 +1,166 @@
+{
+  "app_name": "CutPreview",
+  "personality": "6 Glass / Luxe (with structural elements from 7 Dark-First Utility)",
+  "personality_one_liner": "A premium, cinematic 3D grooming studio that balances glassmorphism luxury with the precise utility of a professional design tool.",
+  "color": {
+    "surface": "#0A0A0A",
+    "onSurface": "#FFFFFF",
+    "surfaceSecondary": "#1C1C1E",
+    "onSurfaceSecondary": "#F2F2F2",
+    "surfaceTertiary": "#2C2C2E",
+    "onSurfaceTertiary": "#E5E5E5",
+    "surfaceInverse": "#F5F5F5",
+    "onSurfaceInverse": "#0A0A0A",
+    "brand": "#D4A373",
+    "onBrand": "#000000",
+    "brandPrimary": "#E5A93C",
+    "onBrandPrimary": "#0A0A0A",
+    "brandSecondary": "#8C6E4A",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#3D3224",
+    "onBrandTertiary": "#D4A373",
+    "success": "#4A7C59",
+    "onSuccess": "#FFFFFF",
+    "warning": "#E5A93C",
+    "onWarning": "#0A0A0A",
+    "error": "#8B3A3A",
+    "onError": "#FFFFFF",
+    "info": "#4A607C",
+    "onInfo": "#FFFFFF",
+    "border": "#2C2C2E",
+    "borderStrong": "#4D4D4D",
+    "divider": "#1C1C1E",
+    "muted": "#8E8E93"
+  },
+  "typography": {
+    "displayFontFamily": "Cairo",
+    "textFontFamily": "IBM Plex Sans Arabic",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous luxury spacing. Avoid dense layouts unless inside the bottom sheet editor controls where utility takes precedence.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use heavy glassmorphism for floating controls overlaid on the 3D avatar viewport (Header, View toggles, Bottom chip bar).",
+      "Apply translucent tinted base (≥75% of surfaceSecondary) beneath blur in dark mode to ensure contrast.",
+      "Use frosted glass on sticky headers over scrolling style grids."
+    ],
+    "dont's": [
+      "Do not blur dense form fields or sliders inside the bottom sheet.",
+      "Do not use glass for the main screen background."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Style Library (Home)",
+      "purpose": "Browsing 60+ ready-made styles to use as a base before entering the 3D editor.",
+      "layout": "Sticky glass top header with 'Men/Women' segmented control. Horizontal scrolling filter pills (length, face shape). Below: 2-column masonry or even grid of style cards. Each card has a subtle gradient overlay (scrim) for title readability and a 'Favorite' icon.",
+      "states": {
+        "loading": "Centered premium gold spinner over dark background.",
+        "empty": "No styles found. 'Reset filters' primary CTA.",
+        "error": "Failed to load styles. 'Retry' button."
+      }
+    },
+    {
+      "name": "3D Avatar Editor",
+      "purpose": "The core manipulation workspace for inspecting and customizing haircut parts.",
+      "layout": "Full-bleed black/ambient canvas. Top header is floating glass (Back, Save, Undo/Redo). Right edge: vertical stack of floating glass FABs for Quick Views (Front, Side, Back, Top) and Lighting. Bottom edge: floating horizontal glass rail of 'Region Chips' (Top, Fringe, Sides, etc.). Tapping a region brings up the Editor Bottom Sheet.",
+      "states": {
+        "loading": "Skeleton model or loading bar overlaying the canvas.",
+        "empty": "N/A",
+        "error": "Canvas failed to initialize. Reload button."
+      }
+    },
+    {
+      "name": "Editor Controls (Bottom Sheet)",
+      "purpose": "Granular parameter adjustments for the selected hair region.",
+      "layout": "Full modal sheet via @gorhom/bottom-sheet. Uses solid surfaceSecondary (not glass). Contains large touch-friendly sliders for Length/Fade, segmented controls for Texture/Volume, and horizontal color swatches. Sticky 'Apply' or 'Close' CTA at the bottom.",
+      "states": {
+        "loading": "N/A",
+        "empty": "N/A",
+        "error": "N/A"
+      }
+    },
+    {
+      "name": "Avatar Setup / Gallery",
+      "purpose": "Selecting a base head model (skin tone, face shape) to preview styles on.",
+      "layout": "Carousel (horizontal scroll with paging) of 4-6 large avatar head previews. A primary 'Select & Continue' CTA sticky at bottom.",
+      "states": {
+        "loading": "Spinner.",
+        "empty": "No avatars available.",
+        "error": "Failed to load avatars."
+      }
+    }
+  ],
+  "images": {
+    "avatar_man_1": {
+      "url": "https://images.unsplash.com/photo-1545996124-0501ebae84d0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwyfHxtYW4lMjBmYWNlJTIwcG9ydHJhaXQlMjBjbGVhcnxlbnwwfHx8fDE3OTA3MTYyOTF8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Male avatar portrait reference"
+    },
+    "avatar_woman_1": {
+      "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGZhY2UlMjBwb3J0cmFpdCUyMGNsZWFyfGVufDB8fHx8MTc5MDcxNjI5MXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Female avatar portrait reference"
+    },
+    "style_men_fade": {
+      "url": "https://images.unsplash.com/photo-1630827020718-3433092696e7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxtZW4lMjBtb2Rlcm4lMjBmYWRlJTIwaGFpcmN1dHxlbnwwfHx8fDE3OTA3MTYyOTF8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Men's modern fade haircut style"
+    },
+    "style_women_layered": {
+      "url": "https://images.unsplash.com/photo-1743612325549-770463904c39?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwzfHx3b21lbiUyMGxheWVyZWQlMjBoYWlyY3V0fGVufDB8fHx8MTc5MDcxNjI5MXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Women's layered haircut style"
+    }
+  },
+  "haptics": {
+    "region_chip_tap": "light",
+    "slider_snap": "medium",
+    "camera_view_change": "light",
+    "style_favorite_toggle": "medium",
+    "bottom_sheet_open": "light",
+    "save_version": "success"
+  },
+  "instructions_to_main_agent": [
+    "CRITICAL: Arabic (RTL) is the default language. Implement React Native's I18nManager.forceRTL(true) properly to ensure the UI mirrors correctly. English is secondary.",
+    "Use Cairo for headings and IBM Plex Sans Arabic for body text to ensure high legibility in both RTL and LTR.",
+    "Implement the 3D Viewer screen using expo-gl and three.js. Create a mock interactive 3D object (e.g., stylized head/sphere) if a complex head model isn't available, but ensure drag-to-rotate, pinch-to-zoom, and quick views (camera angle changes) are functional.",
+    "Use heavy glassmorphism for UI elements floating over the 3D canvas (Quick Views FABs, Region Chip Bar, Top Navigation) to create a premium cinematic feel.",
+    "Do NOT use indigo, blue, or purple. The theme relies on Midnight Black (#0A0A0A) surfaces with Antique Gold/Amber (#D4A373 / #E5A93C) as the premium accent color.",
+    "Always apply a dark-to-transparent scrim (gradient) behind text overlaying images in the Style Library grid to ensure AA accessibility contrast.",
+    "Ensure all touch targets inside the Editor Bottom Sheet (sliders, toggles, chips) are large (≥44pt) and thumb-friendly."
+  ]
+}
