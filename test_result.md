@@ -101,3 +101,70 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "CutPreview — Expo (RN) mobile prototype to try/customize haircuts on a stylized 3D avatar. Arabic RTL default, local-only (no backend). 3D avatar renders via three.js inside a react-native-webview (expo-gl rendered black on Android) with a 2D SVG fallback. Latest bug: Render error on HUAWEI NOVA 9 SE in Expo Go — 'undefined is not a function' at _layout.tsx NavigationBar.setButtonStyleAsync (expo-navigation-bar native fn missing in Expo Go)."
+
+frontend:
+  - task: "App opens without red screen (remove expo-navigation-bar crash)"
+    implemented: true
+    working: "NA"
+    file: "app/_layout.tsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Removed all expo-navigation-bar imports/calls that crashed Expo Go. White bars now handled purely via dark root View + SafeAreaProvider backgroundColor (#0A0A0A) and <StatusBar style='light' backgroundColor='#0B0B0B' translucent />. No other native-module fns used outside Expo Go (only webview, haptics(.catch), svg)."
+  - task: "Editor long-press region selection on 3D head (raycasting in WebView)"
+    implemented: true
+    working: "NA"
+    file: "src/components/avatarSceneHtml.ts, src/components/AvatarViewer3D.tsx, app/(tabs)/editor.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Long-press (~400ms, no move) raycasts region meshes and posts {type:'region'} -> RN sets selection + haptic. Drag rotates, short tap no-op. Raycast verified in a real browser earlier (top/fringe correct)."
+  - task: "3D rotation recovery after background/screenshot (AppState + context loss)"
+    implemented: true
+    working: "NA"
+    file: "src/components/AvatarViewer3D.tsx, src/components/avatarSceneHtml.ts"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "AppState->active injects window.__resume; HTML handles webglcontextlost/restored + visibilitychange and reapplies last state with a running-flag RAF loop."
+  - task: "Editor split layout + smooth slider + chip bar not cut off + full-screen dark"
+    implemented: true
+    working: true
+    file: "app/(tabs)/editor.tsx, src/components/PartEditorSheet.tsx, src/components/Slider.tsx, src/components/RegionChipBar.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Split layout (viewer top, panel bottom, no overlay), gesture slider smooth (0.5cm/1%), chip bar horizontally scrollable with RTL end padding, dark background. Verified on web preview."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 0
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "App opens without red screen (remove expo-navigation-bar crash)"
+    - "Editor long-press region selection on 3D head (raycasting in WebView)"
+    - "3D rotation recovery after background/screenshot (AppState + context loss)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Fixed Expo Go crash by removing expo-navigation-bar calls from app/_layout.tsx. Please test FRONTEND ONLY (no backend; app is fully local/mocked). PRIORITY 1: confirm the app loads to the avatar-picker (index) and navigates library -> editor WITHOUT any red screen / 'undefined is not a function'. PRIORITY 2 (editor): selecting a region chip (region-chip-top/fringe/sides/back) opens its controls (editor-sheet-title) and the length slider (slider-length-<region>) drags smoothly updating slider value (-value testID). PRIORITY 3: full flow index->(متابعة)->library->(select style card 'تدرج متوسط')->editor tab 'المحرر'. NOTE: On web preview the 3D WebView has no bridge so the viewer shows the 2D fallback (testID avatar-2d-fallback) after ~9s — that is EXPECTED on web, not a bug. Long-press region picking and AppState rotation-recovery are device-only (react-native-webview bridge) and cannot be exercised on web — just confirm no crashes and that chip-based selection works. Credentials: none."

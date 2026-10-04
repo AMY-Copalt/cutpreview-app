@@ -1,12 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { LogBox, Platform, View, ActivityIndicator } from "react-native";
+import { LogBox, View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import * as NavigationBar from "expo-navigation-bar";
 import { useFonts } from "expo-font";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
@@ -27,13 +26,6 @@ export default function RootLayout() {
     hydrate().finally(() => setReady(true));
   }, []);
 
-  // Dark system navigation bar so there are no white bars on Android.
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-    NavigationBar.setButtonStyleAsync("light").catch(() => {});
-    NavigationBar.setBackgroundColorAsync(colors.surface).catch(() => {});
-  }, []);
-
   if (!ready || (!fontsLoaded && !fontError)) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
@@ -48,7 +40,7 @@ export default function RootLayout() {
         <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.surface }}>
           <QueryClientProvider client={queryClient}>
             <KeyboardProvider>
-              <StatusBar style="light" backgroundColor="transparent" translucent />
+              <StatusBar style="light" backgroundColor="#0B0B0B" translucent />
               <Stack
                 screenOptions={{
                   headerShown: false,
