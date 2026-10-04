@@ -18,6 +18,16 @@
       },
       "package": "com.emergent.cutpreviewapp.tpb47i"
     },
+    "backgroundColor": "#0A0A0A",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0A0A0A",
+      "translucent": true
+    },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0A0A0A"
+    },
     "web": {
       "bundler": "metro",
       "output": "single",

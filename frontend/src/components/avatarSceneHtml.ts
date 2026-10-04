@@ -119,6 +119,26 @@ export function buildSceneHtml(): string {
       hairBack:hairBack, sideburnsL:sideburnsL, sideburnsR:sideburnsR, beard:beard,
       hairCrown:hairCrown, hairLayers:hairLayers, hairBangs:hairBangs, hairEnds:hairEnds };
 
+    // Tag meshes with their editable region so a long-press can raycast-pick one.
+    M.hairTop.userData.region="top"; M.hairFringe.userData.region="fringe";
+    M.hairSidesL.userData.region="sides"; M.hairSidesR.userData.region="sides";
+    M.hairBack.userData.region="back"; M.sideburnsL.userData.region="sideburns";
+    M.sideburnsR.userData.region="sideburns"; M.beard.userData.region="beard";
+    M.hairCrown.userData.region="crown"; M.hairLayers.userData.region="layers";
+    M.hairBangs.userData.region="bangs"; M.hairEnds.userData.region="ends";
+
+    var lastState = null;
+    var raycaster = new THREE.Raycaster();
+    function pickRegion(cx, cy){
+      var nx = (cx / window.innerWidth) * 2 - 1;
+      var ny = -(cy / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera({ x:nx, y:ny }, camera);
+      var targets = [];
+      Object.keys(M).forEach(function(k){ var m=M[k]; if (m.userData.region && m.visible) targets.push(m); });
+      var hits = raycaster.intersectObjects(targets, false);
+      return hits.length ? hits[0].object.userData.region : null;
+    }
+
     function highlight(m, on){
       m.material.emissive = new THREE.Color(on ? 0xe5a93c : 0x000000);
       m.material.emissiveIntensity = on ? 0.4 : 0;
@@ -207,41 +227,81 @@ export function buildSceneHtml(): string {
     var T = { ry:0, rx:0, zoom:1 };
     var C = { ry:0, rx:0, zoom:1 };
 
-    // gestures
+    // gestures: 1-finger drag = rotate, 2-finger = pinch zoom,
+    // double-tap = reset, long-press (~400ms, no move) = pick region.
     var dragging=false, lastX=0, lastY=0, pinchDist=null, lastTap=0;
+    var lpTimer=null, lpX=0, lpY=0, moved=false;
+    var LONG_MS=400, MOVE_TOL=10;
+    function clearLP(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } }
     function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
     canvas.addEventListener("touchstart", function(e){
       var now=Date.now();
       if (now-lastTap < 280){ T.ry=0; T.rx=0; T.zoom=1; }
       lastTap=now;
-      if (e.touches.length===2){ pinchDist=dist(e.touches); }
-      else if (e.touches.length===1){ dragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; }
+      if (e.touches.length===2){ pinchDist=dist(e.touches); clearLP(); }
+      else if (e.touches.length===1){
+        dragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+        lpX=lastX; lpY=lastY; moved=false;
+        clearLP();
+        lpTimer=setTimeout(function(){
+          lpTimer=null;
+          if (!moved){
+            var r = pickRegion(lpX, lpY);
+            if (r){ dragging=false; post({ type:"region", region:r }); }
+          }
+        }, LONG_MS);
+      }
     }, {passive:true});
     canvas.addEventListener("touchmove", function(e){
       if (e.touches.length===2 && pinchDist!=null){
+        clearLP();
         var d=dist(e.touches); var ratio=d/pinchDist;
         T.zoom = Math.min(2, Math.max(0.6, T.zoom*ratio)); pinchDist=d;
       } else if (e.touches.length===1 && dragging){
         var x=e.touches[0].clientX, y=e.touches[0].clientY;
+        if (Math.abs(x-lpX) > MOVE_TOL || Math.abs(y-lpY) > MOVE_TOL){ moved=true; clearLP(); }
         T.ry += (x-lastX)*0.01; T.rx = Math.max(-0.8, Math.min(0.8, T.rx+(y-lastY)*0.006));
         lastX=x; lastY=y;
       }
     }, {passive:true});
-    canvas.addEventListener("touchend", function(e){ if (e.touches.length===0){ dragging=false; pinchDist=null; } }, {passive:true});
+    canvas.addEventListener("touchend", function(e){ clearLP(); if (e.touches.length===0){ dragging=false; pinchDist=null; } }, {passive:true});
+    canvas.addEventListener("touchcancel", function(){ clearLP(); dragging=false; pinchDist=null; }, {passive:true});
 
-    window.__update = function(state){ try { apply(state); } catch(err){ post({type:"error", reason:"apply:"+err.message}); } };
+    window.__update = function(state){ try { lastState = state; apply(state); } catch(err){ post({type:"error", reason:"apply:"+err.message}); } };
 
     window.addEventListener("resize", size);
     size();
 
-    function loop(){
+    // Render loop with an explicit running flag so we can stop on context loss /
+    // backgrounding and reliably resume afterwards.
+    var running=true, scheduled=false;
+    function tick(){
+      scheduled=false;
+      if (!running) return;
       C.ry += (T.ry-C.ry)*0.15; C.rx += (T.rx-C.rx)*0.15; C.zoom += (T.zoom-C.zoom)*0.15;
       root.rotation.y = C.ry; root.rotation.x = C.rx;
       camera.position.z = 5.4 / C.zoom; camera.lookAt(0,0,0);
-      renderer.render(scene, camera);
-      requestAnimationFrame(loop);
+      try { renderer.render(scene, camera); } catch(e){}
+      schedule();
     }
-    loop();
+    function schedule(){ if (!scheduled && running){ scheduled=true; requestAnimationFrame(tick); } }
+
+    // Called by React Native on AppState -> active.
+    window.__resume = function(){ running=true; if (lastState){ try { apply(lastState); } catch(e){} } size(); schedule(); };
+
+    canvas.addEventListener("webglcontextlost", function(e){ e.preventDefault(); running=false; post({ type:"ctx_lost" }); }, false);
+    canvas.addEventListener("webglcontextrestored", function(){
+      running=true;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+      renderer.setClearColor(0x0a0a0a,1);
+      size();
+      if (lastState){ try { apply(lastState); } catch(e){} }
+      schedule();
+      post({ type:"ctx_restored" });
+    }, false);
+    document.addEventListener("visibilitychange", function(){ if (!document.hidden){ window.__resume(); } });
+
+    schedule();
     post({ type:"ready" });
   }
 

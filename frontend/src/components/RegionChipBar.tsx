@@ -77,7 +77,8 @@ export default function RegionChipBar({ regions, selected, onSelect }: Props) {
 const useStyles = makeStyles((c) => ({
   wrap: { height: 56, justifyContent: "center" },
   row: {
-    paddingHorizontal: spacing.lg,
+    paddingStart: spacing.lg,
+    paddingEnd: spacing.xl,
     gap: spacing.sm,
     alignItems: "center",
     height: 56,

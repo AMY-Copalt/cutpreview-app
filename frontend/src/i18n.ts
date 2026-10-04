@@ -126,7 +126,7 @@ export const strings: Dict = {
     en: "Avatar generation from a real photo is simulated in this build",
   },
   select_style_first: { ar: "اختر قصّة من المكتبة أولاً", en: "Pick a style from the Library first" },
-  editor_hint: { ar: "اضغط الرأس أو الشريط لاختيار الجزء", en: "Tap the head or a chip to select a region" },
+  editor_hint: { ar: "اضغط مطولاً على الرأس أو اختر من الشريط لتحديد الجزء", en: "Long-press the head or use a chip to select a region" },
   region: { ar: "الجزء", en: "Region" },
   version_created: { ar: "تم الإنشاء", en: "Created" },
   saved_versions: { ar: "النسخ المحفوظة", en: "Saved versions" },

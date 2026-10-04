@@ -56,6 +56,15 @@ No auth; local-only data (AsyncStorage). Images & avatar generation are mocked.
 - Resolved Metro 500: `store.ts` imported `../data/*` → corrected to `./data/*`.
 - Cairo font 404 (remote gstatic URLs) → bundled locally via `expo-font`.
 - 3D black screen on Android → replaced expo-gl viewer with WebView + 2D fallback.
+- Editor long-press region picking via three Raycaster inside the WebView
+  (posts `{type:'region'}` → RN sets selection + haptic). Short tap = nothing,
+  drag = rotate. Limit: very short sides/fades are hard to hit precisely; back
+  needs the head rotated into view.
+- WebView render-loop recovery: AppState→active injects `__resume`; HTML handles
+  `webglcontextlost/restored` + `visibilitychange` and reapplies last state.
+- Android white bars: `expo-navigation-bar` (dark) + translucent StatusBar +
+  app.json `androidStatusBar`/`androidNavigationBar`/`backgroundColor`.
+- Region chip bar no longer cut off by the expand button (RTL-aware end padding).
 
 ## Testing status
 - Web smoke: app boots, library/editor render. 3D scene verified rendering in a

@@ -8,8 +8,9 @@
 //   If WebGL is unavailable / three fails to load, we drop to a 2D SVG fallback.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, AppState, StyleSheet, View, useWindowDimensions } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
+import * as Haptics from "expo-haptics";
 
 import { useTheme } from "../theme";
 import type { RegionKey } from "../data/regions";
@@ -40,6 +41,7 @@ export default function AvatarViewer3D({
   selectedRegion,
   quickView = null,
   lighting = "warm",
+  onRegionTap,
   height = 420,
 }: Props) {
   const { width } = useWindowDimensions();
@@ -78,6 +80,17 @@ export default function AvatarViewer3D({
     return () => clearTimeout(timer);
   }, [mode]);
 
+  // Resume the render loop when the app returns to the foreground (the WebView's
+  // RAF loop can be suspended while backgrounded / during a screenshot).
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active" && readyRef.current) {
+        webRef.current?.injectJavaScript("window.__resume && window.__resume(); true;");
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   const onMessage = (e: WebViewMessageEvent) => {
     let msg: any;
     try {
@@ -90,6 +103,9 @@ export default function AvatarViewer3D({
       setMode("webgl");
       const js = `window.__update && window.__update(${JSON.stringify(payload)}); true;`;
       webRef.current?.injectJavaScript(js);
+    } else if (msg.type === "region" && msg.region) {
+      Haptics.selectionAsync().catch(() => {});
+      onRegionTap?.(msg.region as RegionKey);
     } else if (msg.type === "error") {
       setMode("fallback");
     }

@@ -118,6 +118,7 @@ export default function EditorScreen() {
             quickView={quickView}
             lighting={lighting}
             height={viewerH}
+            onRegionTap={(k) => setSelected(k)}
           />
         ) : null}
 
