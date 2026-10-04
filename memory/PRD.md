@@ -31,8 +31,21 @@ No auth; local-only data (AsyncStorage). Images & avatar generation are mocked.
 - Note: react-native-webview is NOT reliable on web preview (no bridge) → web
   always drops to 2D after the 9s timer. On a real device the WebGL path works.
 
+## Editor layout (split, not overlay)
+- `editor.tsx`: header (title + undo/redo + save) → fixed 3D viewer (top, ~55%,
+  flex 1.4/1) → bottom panel (`PartEditorSheet`, flex). Viewer & panel are
+  siblings (panel never overlays the head); viewer keeps its own touch area for
+  rotate. Quick-view/lighting FABs are confined to the viewer top-right.
+- `PartEditorSheet.tsx`: plain panel — header row (RegionChipBar + expand/collapse
+  toggle), internally-scrolling body (per-region controls + global color), sticky
+  Apply footer. Expand toggles panel flex 1↔1 (viewer stays ≥50%).
+- `Slider.tsx`: gesture slider, absolute touch→value mapping (no jumps, RTL-safe),
+  live numeric label + thumb, throttled (40ms) parent updates. step 0.5cm length,
+  1% fade/volume.
+- Tabs scene background forced to surface (removed default white scene bars).
+
 ## Key files
-- `app/(tabs)/editor.tsx` — 3D canvas + region chips + part editor sheet + save.
+- `app/(tabs)/editor.tsx` — split layout: header + 3D viewer + editing panel.
 - `src/components/AvatarViewer3D.tsx` — WebView/2D orchestrator (public API: default export + `QuickView` type).
 - `src/components/avatarSceneHtml.ts` — three.js scene HTML (WebView).
 - `src/components/Avatar2DFallbackView.tsx` — SVG fallback.

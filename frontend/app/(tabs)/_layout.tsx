@@ -33,8 +33,10 @@ export default function TabsLayout() {
   const t = useT();
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: colors.surface }}
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: colors.surface },
         tabBarShowLabel: true,
         tabBarActiveTintColor: colors.brandPrimary,
         tabBarInactiveTintColor: colors.muted,

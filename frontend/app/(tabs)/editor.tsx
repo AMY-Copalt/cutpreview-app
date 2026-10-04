@@ -1,22 +1,15 @@
-// Editor screen — 3D avatar viewer with region chips and per-region bottom sheet.
+// Editor screen — SPLIT layout (not an overlay):
+//   [ header ] [ fixed 3D viewer (top) ] [ editing panel (bottom) ]
+// The viewer is always visible and keeps its own touch area for drag-to-rotate;
+// the panel lives below it and never covers the head.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import { BlurView } from "expo-blur";
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import AvatarViewer3D, { type QuickView } from "@/src/components/AvatarViewer3D";
 import PartEditorSheet from "@/src/components/PartEditorSheet";
-import RegionChipBar from "@/src/components/RegionChipBar";
 import { regionsFor, type RegionKey } from "@/src/data/regions";
 import { findStyle } from "@/src/data/styles";
 import { useLang, useT } from "@/src/i18n";
@@ -30,7 +23,6 @@ export default function EditorScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { height } = useWindowDimensions();
 
   const avatarId = useStore((st) => st.avatarId);
   const gender = useStore((st) => st.activeGender);
@@ -42,6 +34,8 @@ export default function EditorScreen() {
   const [selected, setSelected] = useState<RegionKey | null>(null);
   const [quickView, setQuickView] = useState<QuickView | null>(null);
   const [lighting, setLighting] = useState<"warm" | "cool">("warm");
+  const [expanded, setExpanded] = useState(false);
+  const [viewerH, setViewerH] = useState(0);
   const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
@@ -49,8 +43,6 @@ export default function EditorScreen() {
   const regions = useMemo(() => regionsFor(gender), [gender]);
   const region = selected ? regions.find((r) => r.key === selected) ?? null : null;
   const activeStyle = styleId ? findStyle(styleId) : null;
-
-  const canvasHeight = Math.max(360, height - 300);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -68,9 +60,7 @@ export default function EditorScreen() {
             onPress={() => router.replace("/(tabs)/library")}
             style={[s.cta, { backgroundColor: colors.brandPrimary }]}
           >
-            <Text style={{ color: colors.onBrandPrimary, fontWeight: "700" }}>
-              {t("tab_library")}
-            </Text>
+            <Text style={{ color: colors.onBrandPrimary, fontWeight: "700" }}>{t("tab_library")}</Text>
           </Pressable>
         </View>
       </View>
@@ -79,53 +69,60 @@ export default function EditorScreen() {
 
   return (
     <View style={[s.wrap, { paddingTop: insets.top }]} testID="editor-screen">
-      {/* Floating top header */}
-      <BlurView intensity={40} tint="dark" style={s.topBar}>
-        <View>
+      {/* Header (normal row — no overlay) */}
+      <View style={s.header}>
+        <View style={s.headerTitleWrap}>
           <Text style={[s.topTitle, { color: colors.onSurface }]} numberOfLines={1}>
             {lang === "ar" ? activeStyle?.nameAr : activeStyle?.nameEn}
           </Text>
-          <Text style={[s.topSub, { color: colors.muted }]}>{t("editor_hint")}</Text>
+          <Text style={[s.topSub, { color: colors.muted }]} numberOfLines={1}>
+            {t("editor_hint")}
+          </Text>
         </View>
         <View style={s.topActions}>
           <Pressable
             testID="undo-btn"
             onPress={() => historyLen > 0 && undo()}
-            style={[s.topBtn, { opacity: historyLen > 0 ? 1 : 0.35 }]}
+            style={[s.topBtn, { backgroundColor: colors.surfaceTertiary, opacity: historyLen > 0 ? 1 : 0.35 }]}
           >
-            <Text style={{ color: colors.onSurface, fontWeight: "700" }}>↶</Text>
+            <Text style={{ color: colors.onSurface, fontWeight: "700", fontSize: 16 }}>↶</Text>
           </Pressable>
           <Pressable
             testID="redo-btn"
             onPress={() => futureLen > 0 && redo()}
-            style={[s.topBtn, { opacity: futureLen > 0 ? 1 : 0.35 }]}
+            style={[s.topBtn, { backgroundColor: colors.surfaceTertiary, opacity: futureLen > 0 ? 1 : 0.35 }]}
           >
-            <Text style={{ color: colors.onSurface, fontWeight: "700" }}>↷</Text>
+            <Text style={{ color: colors.onSurface, fontWeight: "700", fontSize: 16 }}>↷</Text>
           </Pressable>
           <Pressable
             testID="save-btn"
             onPress={() => setSaveOpen(true)}
-            style={[s.topBtn, { backgroundColor: colors.brandPrimary }]}
+            style={[s.saveBtn, { backgroundColor: colors.brandPrimary }]}
           >
             <Text style={{ color: colors.onBrandPrimary, fontWeight: "700" }}>{t("save")}</Text>
           </Pressable>
         </View>
-      </BlurView>
+      </View>
 
-      {/* 3D canvas */}
-      <View style={s.canvas}>
-        <AvatarViewer3D
-          avatarId={avatarId}
-          gender={gender}
-          params={params}
-          selectedRegion={selected}
-          quickView={quickView}
-          lighting={lighting}
-          height={canvasHeight}
-        />
+      {/* 3D viewer (fixed top area) */}
+      <View
+        style={[s.viewerArea, { flex: expanded ? 1 : 1.4 }]}
+        onLayout={(e) => setViewerH(Math.round(e.nativeEvent.layout.height))}
+      >
+        {viewerH > 0 ? (
+          <AvatarViewer3D
+            avatarId={avatarId}
+            gender={gender}
+            params={params}
+            selectedRegion={selected}
+            quickView={quickView}
+            lighting={lighting}
+            height={viewerH}
+          />
+        ) : null}
 
-        {/* Right-edge floating quick view FABs */}
-        <View style={[s.fabColumn, { top: 120 }]} pointerEvents="box-none">
+        {/* Quick-view + lighting controls, confined to the viewer's top-right */}
+        <View style={s.fabColumn} pointerEvents="box-none">
           {(["front", "side", "back", "top"] as QuickView[]).map((qv) => (
             <Pressable
               key={qv}
@@ -133,10 +130,9 @@ export default function EditorScreen() {
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
                 setQuickView(qv);
-                // reset so subsequent same-tap re-triggers
                 setTimeout(() => setQuickView(null), 250);
               }}
-              style={[s.fab, { backgroundColor: "rgba(28,28,30,0.75)", borderColor: colors.border }]}
+              style={[s.fab, { backgroundColor: "rgba(28,28,30,0.85)", borderColor: colors.border }]}
             >
               <Text style={{ color: colors.onSurface, fontSize: 10, fontWeight: "700" }}>
                 {t(`view_${qv}` as any)}
@@ -152,7 +148,7 @@ export default function EditorScreen() {
             style={[
               s.fab,
               {
-                backgroundColor: lighting === "warm" ? colors.brandPrimary : "rgba(28,28,30,0.75)",
+                backgroundColor: lighting === "warm" ? colors.brandPrimary : "rgba(28,28,30,0.85)",
                 borderColor: lighting === "warm" ? colors.brandPrimary : colors.border,
               },
             ]}
@@ -160,7 +156,7 @@ export default function EditorScreen() {
             <Text
               style={{
                 color: lighting === "warm" ? colors.onBrandPrimary : colors.onSurface,
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: "700",
               }}
             >
@@ -170,25 +166,27 @@ export default function EditorScreen() {
         </View>
       </View>
 
-      {/* Region chip bar (floating) */}
-      <View style={[s.chipBarWrap, { bottom: insets.bottom + 8 }]}>
-        <BlurView intensity={40} tint="dark" style={{ borderRadius: 999, overflow: "hidden" }}>
-          <RegionChipBar
-            regions={regions}
-            selected={selected}
-            onSelect={(k) => setSelected(k)}
-          />
-        </BlurView>
+      {/* Editing panel (bottom) */}
+      <View style={[s.panelArea, { flex: expanded ? 1 : 1 }]}>
+        <PartEditorSheet
+          regions={regions}
+          selected={selected}
+          onSelect={(k) => setSelected(k)}
+          region={region}
+          expanded={expanded}
+          onToggleExpand={() => setExpanded((v) => !v)}
+          onApply={() => {
+            setSelected(null);
+            setExpanded(false);
+          }}
+        />
       </View>
 
       {toast ? (
-        <View style={[s.toast, { backgroundColor: colors.brandPrimary, bottom: insets.bottom + 80 }]}>
+        <View style={[s.toast, { backgroundColor: colors.brandPrimary }]}>
           <Text style={{ color: colors.onBrandPrimary, fontWeight: "700" }}>{toast}</Text>
         </View>
       ) : null}
-
-      {/* Editor sheet */}
-      <PartEditorSheet region={region} onClose={() => setSelected(null)} />
 
       {/* Save version modal */}
       <Modal visible={saveOpen} transparent animationType="fade" onRequestClose={() => setSaveOpen(false)}>
@@ -228,60 +226,48 @@ export default function EditorScreen() {
 
 const useStyles = makeStyles((c) => ({
   wrap: { flex: 1, backgroundColor: c.surface },
-  topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 3,
-    paddingTop: 48,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
-  topTitle: { fontSize: 16, fontWeight: "700", maxWidth: 180 },
+  headerTitleWrap: { flex: 1, minWidth: 0 },
+  topTitle: { fontSize: 16, fontWeight: "700" },
   topSub: { fontSize: 11, marginTop: 2 },
-  topActions: { flexDirection: "row", gap: 8 },
+  topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   topBtn: {
-    minWidth: 44,
+    width: 40,
     height: 40,
-    paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: "rgba(44,44,46,0.9)",
     alignItems: "center",
     justifyContent: "center",
   },
-  canvas: {
-    flex: 1,
+  saveBtn: {
+    minWidth: 56,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: c.surface,
   },
-  fabColumn: {
-    position: "absolute",
-    right: 12,
-    gap: 10,
-  },
+  viewerArea: { backgroundColor: c.surface },
+  fabColumn: { position: "absolute", right: 12, top: 12, gap: 10 },
   fab: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  chipBarWrap: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    zIndex: 2,
-  },
+  panelArea: {},
   toast: {
     position: "absolute",
     alignSelf: "center",
+    top: 70,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 999,
@@ -290,7 +276,14 @@ const useStyles = makeStyles((c) => ({
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xl },
   emptyTitle: { fontSize: 20, fontWeight: "800" },
   emptySub: { fontSize: 14, marginTop: spacing.sm, textAlign: "center" },
-  cta: { height: 52, borderRadius: 999, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xl, marginTop: spacing.lg },
+  cta: {
+    height: 52,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.lg,
+  },
   modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: spacing.xl },
   modalCard: { width: "100%", borderRadius: 20, padding: spacing.xl },
   modalTitle: { fontSize: 18, fontWeight: "800", marginBottom: spacing.md },
