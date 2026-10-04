@@ -155,27 +155,61 @@ export function buildSceneHtml(): string {
       M.hairBack.visible = men; M.sideburnsL.visible = men; M.sideburnsR.visible = men; M.beard.visible = men;
       M.hairCrown.visible = !men; M.hairLayers.visible = !men; M.hairBangs.visible = !men; M.hairEnds.visible = !men;
 
-      function setLen(mesh, lengthCm, bx, by, bz, axis, key){
-        var norm = Math.max(0.02, lengthCm/15);
-        var f = 0.3 + norm*1.6;
-        var sx = mesh.scale.x, sy = mesh.scale.y, sz = mesh.scale.z;
-        if (axis==="x") sx = bx*f; if (axis==="y") sy = by*f; if (axis==="z") sz = bz*f;
-        mesh.scale.set(sx,sy,sz);
-        highlight(mesh, sel===key);
+      // --- helpers (per-region visual mapping) ---
+      function lenNorm(cm, max){ return Math.max(0.02, cm/max); }
+      function fadeFactor(type){
+        switch(type){
+          case "taper": return 0.25; case "low": return 0.45;
+          case "mid": return 0.65; case "high": return 0.85; case "skin": return 1.0;
+          default: return 0; // "none"
+        }
+      }
+      function volFactor(v){ var n=(v==null?40:v); return 0.8 + (n/100)*0.7; }
+      function applyTex(mesh, tex){
+        var m = mesh.material;
+        if (tex === "wavy"){ m.roughness = 0.6; m.flatShading = true; }
+        else if (tex === "curly"){ m.roughness = 0.9; m.flatShading = true; }
+        else { m.roughness = 0.45; m.flatShading = false; } // straight / default
+        m.needsUpdate = true;
       }
 
       if (men){
-        if (params.top) setLen(M.hairTop, params.top.lengthCm, 0.9,0.55,0.95, "y","top");
-        if (params.fringe) setLen(M.hairFringe, params.fringe.lengthCm, 1.1,0.6,0.5, "z","fringe");
-        if (params.sides){
-          var n = Math.max(0.02, params.sides.lengthCm/8);
-          M.hairSidesL.scale.set(0.35*(0.3+n*1.6),0.9,0.6);
-          M.hairSidesR.scale.copy(M.hairSidesL.scale);
-          highlight(M.hairSidesL, sel==="sides"); highlight(M.hairSidesR, sel==="sides");
-          var fadeY = 0.05 - ((params.sides.fadeHeight||0)/100)*0.35;
-          M.hairSidesL.position.y = fadeY; M.hairSidesR.position.y = fadeY;
+        if (params.top){
+          var tf = 0.3 + lenNorm(params.top.lengthCm,15)*1.6;
+          var tv = volFactor(params.top.volume);
+          M.hairTop.scale.set(0.9*tv, 0.55*tf, 0.95*tv);
+          applyTex(M.hairTop, params.top.texture);
+          highlight(M.hairTop, sel==="top");
         }
-        if (params.back) setLen(M.hairBack, params.back.lengthCm, 0.9,0.7,0.55, "y","back");
+        if (params.fringe){
+          var frf = 0.3 + lenNorm(params.fringe.lengthCm,15)*1.6;
+          var frv = volFactor(params.fringe.volume);
+          M.hairFringe.scale.set(1.1*frv, 0.6*frv, 0.5*frf);
+          applyTex(M.hairFringe, params.fringe.texture);
+          highlight(M.hairFringe, sel==="fringe");
+        }
+        if (params.sides){
+          var n = lenNorm(params.sides.lengthCm,8);
+          var sv = volFactor(params.sides.volume);
+          var baseY = 0.9;
+          var cut = Math.min(0.95, fadeFactor(params.sides.fade)*0.6 + ((params.sides.fadeHeight||0)/100)*0.4);
+          var newY = baseY*(1 - cut*0.8);
+          M.hairSidesL.scale.set(0.35*(0.3+n*1.6), newY, 0.6*sv);
+          M.hairSidesR.scale.copy(M.hairSidesL.scale);
+          var spy = 0.05 + (baseY-newY)/2;
+          M.hairSidesL.position.y = spy; M.hairSidesR.position.y = spy;
+          applyTex(M.hairSidesL, params.sides.texture); applyTex(M.hairSidesR, params.sides.texture);
+          highlight(M.hairSidesL, sel==="sides"); highlight(M.hairSidesR, sel==="sides");
+        }
+        if (params.back){
+          var bf = 0.3 + lenNorm(params.back.lengthCm,8)*1.6;
+          var bv = volFactor(params.back.volume);
+          var bcut = Math.min(0.9, fadeFactor(params.back.fade)*0.5 + ((params.back.fadeHeight||0)/100)*0.3);
+          M.hairBack.scale.set(0.9*bv, 0.7*bf*(1-bcut*0.6), 0.55*bv);
+          M.hairBack.position.y = 0.2 + bcut*0.3;
+          applyTex(M.hairBack, params.back.texture);
+          highlight(M.hairBack, sel==="back");
+        }
         if (params.sideburns){
           var ns = Math.max(0.02, params.sideburns.lengthCm/5);
           M.sideburnsL.scale.set(1,0.5+ns*2,1); M.sideburnsR.scale.copy(M.sideburnsL.scale);
@@ -187,18 +221,32 @@ export function buildSceneHtml(): string {
           highlight(M.beard, sel==="beard");
         }
       } else {
-        if (params.crown) setLen(M.hairCrown, params.crown.lengthCm, 1,0.65,1, "y","crown");
+        if (params.crown){
+          var cf = 0.3 + lenNorm(params.crown.lengthCm,60)*1.6;
+          var cv = volFactor(params.crown.volume);
+          M.hairCrown.scale.set(1*cv, 0.65*cf, 1*cv);
+          applyTex(M.hairCrown, params.crown.texture);
+          highlight(M.hairCrown, sel==="crown");
+        }
         if (params.layers){
           var nl = Math.max(0.05, params.layers.lengthCm/40);
-          M.hairLayers.scale.set(1,0.4+nl*1.6,1); highlight(M.hairLayers, sel==="layers");
+          var lv = volFactor(params.layers.volume);
+          M.hairLayers.scale.set(1*lv, 0.4+nl*1.6, 1*lv);
+          applyTex(M.hairLayers, params.layers.texture);
+          highlight(M.hairLayers, sel==="layers");
         }
         if (params.bangs){
           var nbg = Math.max(0.02, params.bangs.lengthCm/20);
-          M.hairBangs.scale.set(1,0.4+nbg*1.5,1); highlight(M.hairBangs, sel==="bangs");
+          var bgv = volFactor(params.bangs.volume);
+          M.hairBangs.scale.set(1*bgv, 0.4+nbg*1.5, 1*bgv);
+          applyTex(M.hairBangs, params.bangs.texture);
+          highlight(M.hairBangs, sel==="bangs");
         }
         if (params.ends){
           var ne = Math.max(0.05, params.ends.lengthCm/80);
-          M.hairEnds.scale.set(1,0.5+ne*2,1); M.hairEnds.position.y = -0.6 - ne*0.9;
+          var ev = volFactor(params.ends.volume);
+          M.hairEnds.scale.set(1*ev, 0.5+ne*2, 1*ev); M.hairEnds.position.y = -0.6 - ne*0.9;
+          applyTex(M.hairEnds, params.ends.texture);
           highlight(M.hairEnds, sel==="ends");
         }
         if (params.parting){
@@ -207,10 +255,19 @@ export function buildSceneHtml(): string {
         }
       }
 
-      var gc = params.globalColor || "#1B1B1B";
-      ["hairTop","hairFringe","hairSidesL","hairSidesR","hairBack","sideburnsL","sideburnsR","beard","hairCrown","hairLayers","hairBangs","hairEnds"].forEach(function(k){
-        M[k].material.color.set(gc);
-      });
+      // Per-region color (each region keeps its own color; default = style color).
+      var def = params.globalColor || "#1B1B1B";
+      function cOf(p){ return (p && p.color) ? p.color : def; }
+      M.hairTop.material.color.set(cOf(params.top));
+      M.hairFringe.material.color.set(cOf(params.fringe));
+      var scol = cOf(params.sides); M.hairSidesL.material.color.set(scol); M.hairSidesR.material.color.set(scol);
+      M.hairBack.material.color.set(cOf(params.back));
+      var sbcol = cOf(params.sideburns); M.sideburnsL.material.color.set(sbcol); M.sideburnsR.material.color.set(sbcol);
+      M.beard.material.color.set(cOf(params.beard));
+      M.hairCrown.material.color.set(cOf(params.crown));
+      M.hairLayers.material.color.set(cOf(params.layers));
+      M.hairBangs.material.color.set(cOf(params.bangs));
+      M.hairEnds.material.color.set(cOf(params.ends));
 
       if (state.lighting === "warm"){ warm.intensity = 1.1; cool.intensity = 0.15; }
       else { warm.intensity = 0.35; cool.intensity = 1.0; }
